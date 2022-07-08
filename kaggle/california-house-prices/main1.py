@@ -43,7 +43,7 @@ criterion = nn.MSELoss()
 in_features = train_features.shape[1]
 net = mlp.MLP(in_features)
 
-k, num_epochs, lr, weight_decay, batch_size = 5, 2000, 0.005, 0.05, 256
+k, num_epochs, lr, weight_decay, batch_size = 5, 300, 0.005, 0.03, 256
 wandb.init(project="kaggle_1",
            config={"learning_rate": lr,
                    "weight_decay": weight_decay,
@@ -56,12 +56,12 @@ print("network:", net.to(device))
 train_ls, valid_ls = mlp.train(net, criterion, train_features, train_labels, None, None, num_epochs, lr, weight_decay,
                                batch_size, device)
 
+testModel = pd.read_csv("data/test.csv")
 # 使用现有训练好的net
 net.to(device)
 # 将网络应用于测试集。
-preds = net(test_features).detach().numpy()
-
+preds = net(test_features).detach().cpu().numpy()
 # 将其重新格式化以导出到Kaggle
 test['Sold Price'] = pd.Series(preds.reshape(1, -1)[0])
-submission = pd.concat([test['Id'], test['Sold Price']], axis=1)
+submission = pd.concat([testModel['Id'], test['Sold Price']], axis=1)
 submission.to_csv('submission.csv', index=False)

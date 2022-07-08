@@ -5,3 +5,4 @@
 /kaggle/*/data/*
 /kaggle/*/wandb
 .idea/*
+/kaggle/*/checkpoint_*
