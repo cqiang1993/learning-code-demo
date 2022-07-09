@@ -14,13 +14,17 @@ NUM_SAVE = 50
 class MLP(nn.Module):
     def __init__(self, in_features):
         super().__init__()
-        self.layer1 = nn.Linear(in_features, 256)
-        self.layer2 = nn.Linear(256, 64)
+        self.layer1 = nn.Linear(in_features, 896)
+        self.layer2 = nn.Linear(896, 512)
+        self.layer3 = nn.Linear(512, 256)
+        self.layer4 = nn.Linear(256, 64)
         self.out = nn.Linear(64, 1)
 
     def forward(self, x):
         x = F.relu(self.layer1(x))
         x = F.relu(self.layer2(x))
+        x = F.relu(self.layer3(x))
+        x = F.relu(self.layer4(x))
         return self.out(x)
 
 

@@ -4,6 +4,7 @@ import torch.nn as nn
 import filter
 import mlp as mlp
 import wandb
+import kaggle
 
 # 确认跑道
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -15,7 +16,7 @@ test = pd.read_csv("data/test.csv")
 # 长度
 print(len(train))
 print(len(test))
-# 维度
+# 宽度
 print(train.shape)
 print(test.shape)
 
@@ -23,17 +24,22 @@ print(test.shape)
 # 删除无用数据 序列、地址、描述、省份、邮编 等等等
 redundant_cols = ['Id', 'Address', 'Summary', 'State', 'Zip', 'Last Sold On', 'Last Sold Price', 'Listed On',
                   'Listed Price',
-                  'Elementary School', 'Middle School', 'High School', 'Region', 'Lot']
-describe_cols = ['Flooring', 'Heating features', 'Cooling features', 'Appliances included', 'Laundry features',
-                 'Parking features', 'Heating', 'Cooling', 'Parking', 'Bedrooms']
+                  'Elementary School', 'Middle School', 'High School', 'Region', 'Lot', 'City', 'Heating features',
+                  'Cooling features',
+                  'Appliances included', 'Laundry features', 'Parking features']
+
+# 量化文字数据
+describe_cols = ['Flooring',
+                 'Heating', 'Cooling', 'Parking', 'Bedrooms']
 
 # 补充缺失数据 以及格式化数据
 train, test = filter.handle_data([train, test], redundant_cols, describe_cols)
 
 # 把train和test去除id后放一起，train也要去掉label
-all_features = pd.concat((train.iloc[:, 1:], test.iloc[:, 1:]))
+all_features = pd.concat((train.iloc[:, 1:], test.iloc[:, :]))
 all_features = pd.get_dummies(all_features, dummy_na=True)
 
+# 区分出数据集
 n_train = train.shape[0]
 train_features = torch.tensor(all_features[:n_train].values, dtype=torch.float).cuda()
 test_features = torch.tensor(all_features[n_train:].values, dtype=torch.float).cuda()
@@ -43,7 +49,7 @@ criterion = nn.MSELoss()
 in_features = train_features.shape[1]
 net = mlp.MLP(in_features)
 
-k, num_epochs, lr, weight_decay, batch_size = 5, 300, 0.005, 0.03, 256
+k, num_epochs, lr, weight_decay, batch_size = 5, 100, 0.005, 0.05, 896
 wandb.init(project="kaggle_1",
            config={"learning_rate": lr,
                    "weight_decay": weight_decay,
@@ -65,3 +71,8 @@ preds = net(test_features).detach().cpu().numpy()
 test['Sold Price'] = pd.Series(preds.reshape(1, -1)[0])
 submission = pd.concat([testModel['Id'], test['Sold Price']], axis=1)
 submission.to_csv('submission.csv', index=False)
+kaggle.api.authenticate()
+kaggle.api.competition_submit(file_name="submission.csv",message='123',competition="california-house-prices")
+
+# result = os.popen("kaggle competitions submit -c california-house-prices -f submission.csv -m '123'").read()
+# print(result)
